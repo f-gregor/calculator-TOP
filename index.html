@@ -1,0 +1,154 @@
+<div></div><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculator - The Odin Project</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="first row">
+            <div class="screen"></div>
+        </div>
+        <div class="second row">
+            <button class="clear">AC</button>
+            <button class="delete"><</button>
+            <button class="sign">+/-</button>
+            <button class="operator">/</button>
+        </div>
+        <div class="third row">
+            <button class="number">7</button>
+            <button class="number">8</button>
+            <button class="number">9</button>
+            <button class="operator">*</button>
+        </div>
+        <div class="fourth row">
+            <button class="number">4</button>
+            <button class="number">5</button>
+            <button class="number">6</button>
+            <button class="operator">-</button>
+        </div>
+        <div class="fifth row">
+            <button class="number">1</button>
+            <button class="number">2</button>
+            <button class="number">3</button>
+            <button class="operator">+</button>
+        </div>
+        <div class="sixth row">
+            <button class="number">0</button>
+            <button class="dot">.</button>
+            <button class="percent">%</button>
+            <button class="operate">=</button>
+        </div>
+    </div>
+
+    <script>
+        const MAX_LENGTH = 11;
+
+        const calculator = {
+            screenObj: document.querySelector(".screen"),
+            screenText: "",
+            currentOperator: null,
+            buffer: null,
+            newInput: true,
+            appendCharacter(c) {
+                if (this.newInput) {
+                    this.buffer = Number(this.screenText);
+                    this.screenText = "";
+                    this.newInput = false;
+                }
+                if (!(this.screenText.length < MAX_LENGTH) || (!this.screenText && c === "0"))
+                    return;
+
+                if (!this.screenText && c === ".") {
+                    this.screenText = "0.";
+                } else {
+                    this.screenText += c;
+                }
+
+                this.updateScreen();    
+            },
+            updateScreen () {
+                this.screenObj.textContent = this.screenText;
+            },
+            clearAll() {
+                if (calculator.currentOperator) calculator.deselectOperator();
+                this.buffer = 0;
+                this.screenText = "";
+                this.updateScreen();
+
+            },
+            delete() {
+                this.screenText = this.screenText.substring(0, this.screenText.length - 1);
+                this.updateScreen();
+            },
+            selectOperator(operator){
+                if (this.currentOperator) {
+                    if (!this.newInput) this.operate();
+                    this.deselectOperator();
+                }
+
+                this.currentOperator = operator;
+                operator.classList.add("selected");
+                this.newInput = true;
+                
+            },
+            deselectOperator() {
+                this.currentOperator.classList.toggle("selected");
+                this.currentOperator = null;
+            },
+            operate(operation) {
+                switch(this.currentOperator.textContent){
+                    case '+':
+                        this.screenText = String(this.buffer + Number(this.screenText)).substring(0, MAX_LENGTH);
+                        break;
+                    case '-':
+                        this.screenText = String(this.buffer - Number(this.screenText)).substring(0, MAX_LENGTH);
+                        break;
+                    case '*':
+                        this.screenText = String(this.buffer * Number(this.screenText)).substring(0, MAX_LENGTH);
+                        break;
+                    case '/':
+                        this.screenText = String(this.buffer / Number(this.screenText)).substring(0, MAX_LENGTH);
+                        break;
+                }
+
+                this.updateScreen();
+            }
+
+        }
+
+        const numbersKeys = document.querySelectorAll(".number");
+
+        for (numberKey of numbersKeys) {
+            numberKey.addEventListener('click', (event) => {
+                calculator.appendCharacter(event.target.textContent);});
+        }
+
+        const dot = document.querySelector(".dot");
+
+        dot.addEventListener('click', (event) => {
+            calculator.appendCharacter(event.target.textContent);});
+
+        const cancel = document.querySelector(".delete");
+
+        cancel.addEventListener('click', () => {
+            calculator.delete();});
+
+        const clear = document.querySelector(".clear");
+
+        clear.addEventListener('click', () => {
+            calculator.clearAll();});
+
+        const operators = document.querySelectorAll(".operator");
+
+        for (operator of operators) {
+            operator.addEventListener('click', (event) => {
+                calculator.selectOperator(event.target);
+                })
+        }
+
+    </script>
+</body>
+</html>
