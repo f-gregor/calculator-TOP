@@ -62,13 +62,13 @@
                     }
                 }
 
+                if (this.currentBuffer.includes('.') && c === '.') return;
+
                 if (!this.currentBuffer && c === ".") {
                     this.currentBuffer = "0.";
-                } else {
+                } else{
                     this.currentBuffer += c;
                 }
-
-                console.log("old: " + this.oldBuffer + " current: " + this.currentBuffer)
 
                 this.updateScreen();    
             },
@@ -119,21 +119,19 @@
                 let result;
                 switch(this.currentOperator.textContent){
                     case '+':
-                        result = this.approximate(String(Number(this.oldBuffer) + Number(this.currentBuffer)))
+                        result = this.truncate(String(Number(this.oldBuffer) + Number(this.currentBuffer)))
                         break;
                     case '-':
-                        result = this.approximate(String(Number(this.oldBuffer) - Number(this.currentBuffer)))
+                        result = this.truncate(String(Number(this.oldBuffer) - Number(this.currentBuffer)))
                         break;
                     case '*':
-                        result = this.approximate(String(Number(this.oldBuffer) * Number(this.currentBuffer)))
+                        result = this.truncate(String(Number(this.oldBuffer) * Number(this.currentBuffer)))
                         break;
                     case '/':
                         result = (Number(this.currentBuffer) === 0) ? "Err" :
-                                 this.approximate(String(Number(this.oldBuffer) / Number(this.currentBuffer)));                           
+                                 this.truncate(String(Number(this.oldBuffer) / Number(this.currentBuffer)));                           
                         break;
                 }
-
-                console.log(this.currentOperator.textContent);
                 
                 if (result === "Err") {
                     this.clearAll();
@@ -150,27 +148,49 @@
                 let num = Number(this.currentBuffer);
 
                 if (num > 0) {
-                    this.currentBuffer = this.approximate("-" + this.currentBuffer);
+                    this.currentBuffer = this.truncate("-" + this.currentBuffer);
                 } else {
                     this.currentBuffer = this.currentBuffer.slice(1);
                 }
 
                 this.updateScreen();
             },
-            approximate(numberAsString) {
-                if (numberAsString.length > MAX_LENGTH){
-                    let numberOfFiguresAfterDot = 11 - (numberAsString.indexOf(".") + 1);
-                    let approximatedNumber = Math.round(numberAsString * (10 ** numberOfFiguresAfterDot))/(10 ** numberOfFiguresAfterDot)
-                    return String(approximatedNumber).substring(0, MAX_LENGTH);
-                }
+            truncate(numberAsString) {
+                let manipulatedNumberAsString = numberAsString;
 
-                return numberAsString;
+                if (numberAsString.includes('e')) {
+                    let [number, exponent] = numberAsString.split('e');
+                    let currentDotIndex = (number.includes('.')) ? number.indexOf('.') : number.length;
+                    let futureDotIndex = currentDotIndex + Number(exponent);
+
+                    if (Number(exponent) > 0) {           
+                        let numberOfZerosToAdd = Math.max(futureDotIndex - (number.length - 1), 0);
+                        manipulatedNumberAsString = number.replace(".", "") + "0".repeat(numberOfZerosToAdd)
+                        if (futureDotIndex < manipulatedNumberAsString.length - 1) {
+                            manipulatedNumberAsString = manipulatedNumberAsString.slice(0, futureDotIndex) + 
+                                                        "." +
+                                                        manipulatedNumberAsString.slice(futureDotIndex);
+                        }
+                    } else {
+                        let numberOfZerosToAdd = Math.max(1 - (futureDotIndex), 0);
+                        manipulatedNumberAsString = ("0".repeat(numberOfZerosToAdd) + number.replace(".", ""))
+                        manipulatedNumberAsString = manipulatedNumberAsString.slice(0, 1) +
+                                                    "." +
+                                                    manipulatedNumberAsString.slice(1);
+                    }
+                }
+                
+                manipulatedNumberAsString = manipulatedNumberAsString.substring(0, MAX_LENGTH)
+                manipulatedNumberAsString = (Number(manipulatedNumberAsString) === 0) ? 
+                                            "0" :
+                                            manipulatedNumberAsString;
+
+                return manipulatedNumberAsString;
             },
             divideBy100() {
-                this.currentBuffer = this.approximate(String(Number(this.currentBuffer) / 100))
+                this.currentBuffer = this.truncate(String(Number(this.currentBuffer) / 100));
                 this.updateScreen();
             },
-
         }
 
         const numbersKeys = document.querySelectorAll(".number");
@@ -220,6 +240,10 @@
 
         signToggle.addEventListener('click', () => {
             calculator.toggleSign();
+        })
+
+        document.addEventListener('keypress', (event) => {
+            if ('0123456789'.includes(event.key)) calculator.appendCharacter(event.key);
         })
 
     </script>
