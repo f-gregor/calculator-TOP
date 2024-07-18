@@ -51,14 +51,7 @@
             currentBuffer: "",
             oldBuffer: "",
             currentOperator: null,
-            isWaitingInput: true,
             appendCharacter(c) {
-                if (this.isWaitingInput) {
-                    this.oldBuffer = this.currentBuffer;
-                    this.currentBuffer = "";
-                    this.isWaitingInput = false;
-                }
-
                 if (!(this.currentBuffer.length < MAX_LENGTH)) return;
 
                 if (this.currentBuffer === "0") {
@@ -74,6 +67,8 @@
                 } else {
                     this.currentBuffer += c;
                 }
+
+                console.log("old: " + this.oldBuffer + " current: " + this.currentBuffer)
 
                 this.updateScreen();    
             },
@@ -93,14 +88,24 @@
                 this.updateScreen();
             },
             selectOperator(operator){
-                if (this.currentOperator) {
-                    if (!this.isWaitingInput) operate();        
+                if (this.currentBuffer === "" && this.oldBuffer === "") return;
+
+                if (!this.currentOperator && !this.oldBuffer) {
+                    this.oldBuffer = this.currentBuffer;
+                    this.currentBuffer = "";
                 }
 
-                this.deselectOperator();
+                let operationSuccessful = true;
+
+                if (this.currentOperator) {
+                    operationSuccessful = this.operate();
+                    this.deselectOperator();
+                }
+
+                if (!operationSuccessful) return;
+
                 this.currentOperator = operator;
                 operator.classList.add("selected");
-                this.isWaitingInput = true;        
             },
             deselectOperator() {
                 if (!this.currentOperator) return;
@@ -109,25 +114,37 @@
                 this.currentOperator = null;
             },
             operate() {
-                if (!this.currentOperator || this.isWaitingInput) return;
+                if (this.currentBuffer === "" || this.oldBuffer === "") return true;
 
+                let result;
                 switch(this.currentOperator.textContent){
                     case '+':
-                        this.currentBuffer = this.approximate(String(Number(this.oldBuffer) + Number(this.currentBuffer)))
+                        result = this.approximate(String(Number(this.oldBuffer) + Number(this.currentBuffer)))
                         break;
                     case '-':
-                        this.currentBuffer = this.approximate(String(Number(this.oldBuffer) - Number(this.currentBuffer)))
+                        result = this.approximate(String(Number(this.oldBuffer) - Number(this.currentBuffer)))
                         break;
                     case '*':
-                        this.currentBuffer = this.approximate(String(Number(this.oldBuffer) * Number(this.currentBuffer)))
+                        result = this.approximate(String(Number(this.oldBuffer) * Number(this.currentBuffer)))
                         break;
                     case '/':
-                        this.currentBuffer = this.approximate(String(Number(this.oldBuffer) / Number(this.currentBuffer)))
-                                                    
+                        result = (Number(this.currentBuffer) === 0) ? "Err" :
+                                 this.approximate(String(Number(this.oldBuffer) / Number(this.currentBuffer)));                           
                         break;
                 }
 
-                this.updateScreen();
+                console.log(this.currentOperator.textContent);
+                
+                if (result === "Err") {
+                    this.clearAll();
+                    this.screenObj.textContent = result;
+                    return false;
+                } else {
+                    this.screenObj.textContent = result;
+                    this.oldBuffer = result;
+                    this.currentBuffer = "";
+                    return true;
+                }
             },
             toggleSign(){
                 let num = Number(this.currentBuffer);
