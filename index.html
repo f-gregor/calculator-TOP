@@ -13,7 +13,7 @@
         </div>
         <div class="second row">
             <button class="clear">AC</button>
-            <button class="delete"><</button>
+            <button class="delete">C</button>
             <button class="sign">+/-</button>
             <button class="operator">/</button>
         </div>
@@ -48,74 +48,111 @@
 
         const calculator = {
             screenObj: document.querySelector(".screen"),
-            screenText: "",
+            currentBuffer: "",
+            oldBuffer: "",
             currentOperator: null,
-            buffer: null,
-            newInput: true,
+            isWaitingInput: true,
             appendCharacter(c) {
-                if (this.newInput) {
-                    this.buffer = Number(this.screenText);
-                    this.screenText = "";
-                    this.newInput = false;
+                if (this.isWaitingInput) {
+                    this.oldBuffer = this.currentBuffer;
+                    this.currentBuffer = "";
+                    this.isWaitingInput = false;
                 }
-                if (!(this.screenText.length < MAX_LENGTH) || (!this.screenText && c === "0"))
-                    return;
 
-                if (!this.screenText && c === ".") {
-                    this.screenText = "0.";
+                if (!(this.currentBuffer.length < MAX_LENGTH)) return;
+
+                if (this.currentBuffer === "0") {
+                    if (c === "0") {
+                        return;
+                    } else {
+                        this.currentBuffer = "";
+                    }
+                }
+
+                if (!this.currentBuffer && c === ".") {
+                    this.currentBuffer = "0.";
                 } else {
-                    this.screenText += c;
+                    this.currentBuffer += c;
                 }
 
                 this.updateScreen();    
             },
             updateScreen () {
-                this.screenObj.textContent = this.screenText;
+                this.screenObj.textContent = this.currentBuffer;
             },
             clearAll() {
-                if (calculator.currentOperator) calculator.deselectOperator();
-                this.buffer = 0;
-                this.screenText = "";
+                this.deselectOperator();
+                this.oldBuffer = "";
+                this.currentBuffer = "";
+                this.isWaitingInput = true;
                 this.updateScreen();
 
             },
             delete() {
-                this.screenText = this.screenText.substring(0, this.screenText.length - 1);
+                this.currentBuffer = this.currentBuffer.substring(0, this.currentBuffer.length - 1);
                 this.updateScreen();
             },
             selectOperator(operator){
                 if (this.currentOperator) {
-                    if (!this.newInput) this.operate();
-                    this.deselectOperator();
+                    if (!this.isWaitingInput) operate();        
                 }
 
+                this.deselectOperator();
                 this.currentOperator = operator;
                 operator.classList.add("selected");
-                this.newInput = true;
-                
+                this.isWaitingInput = true;        
             },
             deselectOperator() {
+                if (!this.currentOperator) return;
+
                 this.currentOperator.classList.toggle("selected");
                 this.currentOperator = null;
             },
-            operate(operation) {
+            operate() {
+                if (!this.currentOperator || this.isWaitingInput) return;
+
                 switch(this.currentOperator.textContent){
                     case '+':
-                        this.screenText = String(this.buffer + Number(this.screenText)).substring(0, MAX_LENGTH);
+                        this.currentBuffer = this.approximate(String(Number(this.oldBuffer) + Number(this.currentBuffer)))
                         break;
                     case '-':
-                        this.screenText = String(this.buffer - Number(this.screenText)).substring(0, MAX_LENGTH);
+                        this.currentBuffer = this.approximate(String(Number(this.oldBuffer) - Number(this.currentBuffer)))
                         break;
                     case '*':
-                        this.screenText = String(this.buffer * Number(this.screenText)).substring(0, MAX_LENGTH);
+                        this.currentBuffer = this.approximate(String(Number(this.oldBuffer) * Number(this.currentBuffer)))
                         break;
                     case '/':
-                        this.screenText = String(this.buffer / Number(this.screenText)).substring(0, MAX_LENGTH);
+                        this.currentBuffer = this.approximate(String(Number(this.oldBuffer) / Number(this.currentBuffer)))
+                                                    
                         break;
                 }
 
                 this.updateScreen();
-            }
+            },
+            toggleSign(){
+                let num = Number(this.currentBuffer);
+
+                if (num > 0) {
+                    this.currentBuffer = this.approximate("-" + this.currentBuffer);
+                } else {
+                    this.currentBuffer = this.currentBuffer.slice(1);
+                }
+
+                this.updateScreen();
+            },
+            approximate(numberAsString) {
+                if (numberAsString.length > MAX_LENGTH){
+                    let numberOfFiguresAfterDot = 11 - (numberAsString.indexOf(".") + 1);
+                    let approximatedNumber = Math.round(numberAsString * (10 ** numberOfFiguresAfterDot))/(10 ** numberOfFiguresAfterDot)
+                    return String(approximatedNumber).substring(0, MAX_LENGTH);
+                }
+
+                return numberAsString;
+            },
+            divideBy100() {
+                this.currentBuffer = this.approximate(String(Number(this.currentBuffer) / 100))
+                this.updateScreen();
+            },
 
         }
 
@@ -131,15 +168,11 @@
         dot.addEventListener('click', (event) => {
             calculator.appendCharacter(event.target.textContent);});
 
-        const cancel = document.querySelector(".delete");
+        const percent = document.querySelector(".percent");
 
-        cancel.addEventListener('click', () => {
-            calculator.delete();});
-
-        const clear = document.querySelector(".clear");
-
-        clear.addEventListener('click', () => {
-            calculator.clearAll();});
+        percent.addEventListener('click', () => {
+            calculator.divideBy100();
+        })
 
         const operators = document.querySelectorAll(".operator");
 
@@ -148,6 +181,29 @@
                 calculator.selectOperator(event.target);
                 })
         }
+
+        const operate = document.querySelector(".operate");
+
+        operate.addEventListener('click', (event) => {
+            calculator.operate();
+            calculator.deselectOperator();
+        })
+
+        const clear = document.querySelector(".clear");
+
+        clear.addEventListener('click', () => {
+            calculator.clearAll();});
+
+        const cancel = document.querySelector(".delete");
+
+        cancel.addEventListener('click', () => {
+            calculator.delete();});
+
+        const signToggle = document.querySelector(".sign");
+
+        signToggle.addEventListener('click', () => {
+            calculator.toggleSign();
+        })
 
     </script>
 </body>
